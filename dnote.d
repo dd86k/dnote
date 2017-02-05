@@ -5,22 +5,13 @@ import std.stdio;
 import std.path : dirSeparator, baseName;
 import std.file;
 
-/*
-syntax:
-dnote
-- create|c [-n <Name>] <Message>
-- show|s <Name>
-- modify|m [-a] <Name> <Message>
-- list|l
-- delete|d [-y] {-a|<Name>}
-*/
-
 const enum { // App constants
     APP_NAME    = "dnote",
-    APP_VERSION = "0.0.0",
+    APP_VERSION = "0.1.0",
     FOLDER_NAME = ".dnote",
 }
 
+//TODO: Implement return codes.
 const enum { // CLI Error list, to use/define later
     E_S = 0,
     // Main CLI
