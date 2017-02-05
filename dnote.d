@@ -206,7 +206,6 @@ void create(string[] args)
             else
             {
                 mkdir(dnote_folder);
-                writefln("A %s folder was created in your user profile.", FOLDER_NAME);
             }
 
             if (cname == false)
@@ -281,11 +280,9 @@ void show(string[] args)
             {
                 const size_t MAX = 2; // 40
                 File f = File(fullname);
-
-                char[40] buf;
-                f.rawRead(buf);
-
-                writeln(buf);
+                string buf;
+                while ((buf = f.readln) !is null)
+                    write(buf);
             }
             else
             {
@@ -372,7 +369,6 @@ void modify(string[] args)
             }
             else
                 std.file.write(fullname, data);
-            writefln(`Note "%s" modified.`, name);
             break;
     }
 } // modify
@@ -389,19 +385,116 @@ void list()
 
     dnote_folder = get_dnote_folder(up);
 
+    if (!exists(dnote_folder))
+    {
+        writefln(`%s folder does not exist.`, FOLDER_NAME);
+        return;
+    }
+
     foreach(e; dirEntries(dnote_folder, SpanMode.shallow))
         writeln(baseName(e.name));
 } // list
 
 void delete_(string[] args)
 {
+    size_t l = args.length;
+
     switch (args[0])
     {
         case "--help":
             showhelp("delete");
             return;
         default:
-            
+            size_t si;
+            bool yes, all;
+
+            for (size_t i = 0; i < l; ++i)
+            {
+                switch (args[i])
+                {
+                    case "-y", "/y":
+                        yes = true;
+                        ++si;
+                        break;
+                    case "-a", "/a":
+                        all = true;
+                        break;
+                    default:
+                }
+            }
+
+            string up = get_userfolder;
+
+            if (up == null)
+            {
+                writeln("There was an error getting the userfolder.");
+                return;
+            }
+
+            dnote_folder = get_dnote_folder(up);
+
+            if (exists(dnote_folder))
+            {
+                if (isFile(dnote_folder))
+                {
+                    writefln("Can't check folder, %s already exists as a file.", FOLDER_NAME);
+                    return;
+                }
+            }
+            else
+            {
+                writeln(`Folder "%s" does not exist.`, FOLDER_NAME);
+                return;
+            }
+
+            if (all)
+            {
+                if (!yes)
+                {
+                    write("Are you sure to delete every note? [y/n] ");
+                    string ln = readln();
+                    if (ln.length > 0)
+                    {
+                        if (ln[0] != 'y')
+                        {
+                            writeln("Canceled.");
+                            return;
+                        }
+                    }
+                    else return;
+                }
+
+                foreach (e; dirEntries(dnote_folder, SpanMode.shallow))
+                    remove(e.name);
+            }
+            else
+            {
+                string name = args[si];
+                string fullname = dnote_folder ~ dirSeparator ~ name;
+
+                if (!exists(fullname))
+                {
+                    writefln(`Note "%s" does not exist.`, name);
+                    return;
+                }
+
+                if (!yes)
+                {
+                    writef(`Are you sure to delete "%s"? [y/n] `, name);
+                    string ln = readln();
+                    if (ln.length > 0)
+                    {
+                        if (ln[0] != 'y')
+                        {
+                            writeln("Canceled.");
+                            return;
+                        }
+                    }
+                    else return;
+                }
+
+                remove(fullname);
+            }
             break;
     }
 } // delete
@@ -414,7 +507,9 @@ void showhelp(string command)
             writeln("create [-n <Name>] <Note>");
             writeln("Creates a new note.");
             writeln("  -n   Name the new note.\n");
-            writeln(`By default, when unamed, names will be determined by the number of notes existing, starting at "1".`);
+            writefln("By default, when unamed, names will be determined " ~
+                `by the number of existing notes, starting at "1". If the %s folder does ` ~
+                `not exist, %s will create it`, FOLDER_NAME, APP_NAME);
             break;
         case "s", "show":
             writeln("show <Name>");
@@ -425,8 +520,8 @@ void showhelp(string command)
         case "m", "modify":
             writeln("modify <Name> <Note>");
             writeln("Modify the content of a note.");
-            //writeln("");
-            //writeln("");
+            writeln("  -a   Append instead of replacing.\n");
+            writeln("By default, modify replaces the content of a note.");
             break;
         case "l", "list":
             writeln("list");
@@ -439,7 +534,7 @@ void showhelp(string command)
             writeln("Delete a note.");
             writeln("  -y   Automatically confirm yes.");
             writeln("  -a   All notes.\n");
-            writeln("By default, there will be a confirmation menu.");
+            writeln("By default, there will be a confirmation menu for the selected note.");
             break;
         default:
             writefln(`"%s" is not a valid command.`, command);
