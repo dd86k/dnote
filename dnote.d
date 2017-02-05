@@ -2,7 +2,7 @@ module dnote;
 
 import std.stdio;
 //import std.process : system;
-import std.path : dirSeparator; // http://dlang.org/phobos/std_path.html
+import std.path : dirSeparator, baseName;
 import std.file;
 
 /*
@@ -13,22 +13,11 @@ dnote
 - modify|m <Name> <Message>
 - list|l
 - delete|d [-y] {-a|<Name>}
-
-Store in ~/.dnote/<Name>
-FOLDERID_Profile - {5E6C858F-0E22-4760-9AFE-EA3317B67173} from
-https://msdn.microsoft.com/en-us/library/windows/desktop/dd378457.aspx
-to
-https://msdn.microsoft.com/en-us/library/windows/desktop/bb762188.aspx
-then
-https://msdn.microsoft.com/en-us/library/windows/desktop/ms680722.aspx
 */
 
 const enum { // App constants
     APP_NAME    = "dnote",
-    APP_VERSION = "0.0.0"
-}
-
-const enum {
+    APP_VERSION = "0.0.0",
     FOLDER_NAME = ".dnote",
 }
 
@@ -110,9 +99,9 @@ int main(string[] args)
             break;
         case "l", "list":
             if (l > 2)
-                list(args[2..$]);
-            else
                 showhelp("list");
+            else
+                list();
             break;
         case "d", "delete":
             if (l > 2)
@@ -145,7 +134,7 @@ void print_help(string app = APP_NAME)
 
 void print_version(string app = APP_NAME)
 {
-    writefln("%s - v%s", APP_NAME, APP_VERSION);
+    writefln("%s - v%s", app, APP_VERSION);
     writeln("Copyright (c) 2017 dd86k");
     writeln("License: MIT");
     writeln("Project page: <https://github.com/dd86k/dnote>");
@@ -268,17 +257,20 @@ void modify(string[] args)
     }
 }
 
-void list(string[] args)
+void list()
 {
-    switch (args[0])
+    string up = get_userfolder;
+
+    if (up == null)
     {
-        case "--help":
-            showhelp("list");
-            return;
-        default:
-        
-            break;
+        writeln("There was an error getting the userfolder.");
+        return;
     }
+
+    dnote_folder = get_dnote_folder(up);
+
+    foreach(e; dirEntries(dnote_folder, SpanMode.shallow))
+        writeln(baseName(e.name));
 }
 
 void delete_(string[] args)
@@ -289,7 +281,7 @@ void delete_(string[] args)
             showhelp("delete");
             return;
         default:
-        
+            
             break;
     }
 }
