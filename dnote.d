@@ -110,7 +110,7 @@ int main(string[] args)
                 showhelp("delete");
             break;
         default:
-            writefln("%s is an invalid mode.", args[1]);
+            writefln(`"%s" is an invalid command.`, args[1]);
             break;
     }
     
@@ -119,7 +119,7 @@ int main(string[] args)
 
 void print_help(string app = APP_NAME)
 {
-    writefln("%s [<Mode>] <Arguments>", app);
+    writefln("%s [<Command>] <Arguments>", app);
     writeln("Commands:");
     writeln("  c, create   Create a new note.");
     writeln("  s, show     Show the content of a note.");
@@ -129,7 +129,7 @@ void print_help(string app = APP_NAME)
     writeln("Arguments:");
     writeln("  -h, --help, /?   Show the help screen and quits.");
     writeln("  -v, --version    Show the version screen and quits.\n");
-    writefln(`To get help on an operating mode, see "%s <Mode> --help" or "%s help <Mode>".`, app, app);
+    writefln(`To get help on a command, see "%s <Command> --help" or "%s help <Command>".`, app, app);
 }
 
 void print_version(string app = APP_NAME)
