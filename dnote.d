@@ -180,6 +180,12 @@ void create(string[] args)
                 }
             }
 
+            if (si >= l)
+            {
+                writeln("Missing note content.");
+                return;
+            }
+
             string up = get_userfolder;
 
             if (up == null)
@@ -201,6 +207,7 @@ void create(string[] args)
             else
             {
                 mkdir(dnote_folder);
+                writefln("A %s folder was created in your user profile.", FOLDER_NAME);
             }
 
             if (cname == false)
@@ -221,15 +228,15 @@ void create(string[] args)
                 return;
             }
 
-            string data;
-            foreach(s; args[si..$])
-                data ~= s;
+            string data = args[si];
+            foreach(s; args[si + 1..$])
+                data ~= ' ' ~ s;
 
             std.file.write(fullname, data);
         }
             break;
     }
-}
+} // create
 
 void show(string[] args)
 {
@@ -242,7 +249,7 @@ void show(string[] args)
 
             break;
     }
-}
+} // show
 
 void modify(string[] args)
 {
@@ -255,7 +262,7 @@ void modify(string[] args)
         
             break;
     }
-}
+} // modify
 
 void list()
 {
@@ -271,7 +278,7 @@ void list()
 
     foreach(e; dirEntries(dnote_folder, SpanMode.shallow))
         writeln(baseName(e.name));
-}
+} // list
 
 void delete_(string[] args)
 {
@@ -284,7 +291,7 @@ void delete_(string[] args)
             
             break;
     }
-}
+} // delete
 
 void showhelp(string command)
 {
