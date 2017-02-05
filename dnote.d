@@ -351,10 +351,32 @@ string get_userfolder()
         debug writeln("get_userfolder: null");
         return null;
     }
-    else
+    else version (linux)
     {
-        throw new Exception("Not implemented : get_userfolder");
+        static assert(0, "get_userfolder : Not implemented in Linux.");
+        import core.sys.linux.unistd, core.stdc.stdlib;
+        /* unistd:
+        - getuid()
+           stdlib:
+        - getenv()
+        
+        #include <unistd.h>
+        #include <sys/types.h>
+        #include <pwd.h>
+
+        const char *homedir;
+
+        if ((homedir = getenv("HOME")) == NULL) {
+            homedir = getpwuid(getuid())->pw_dir;
+        }
+        */
     }
+    else version (OSX)
+    {
+        static assert(0, "get_userfolder : Not implemented in OSX.");
+    }
+    else
+        static assert(0, "Target operating system is not supported.");
 }
 
 string get_dnote_folder(string userprofile)
