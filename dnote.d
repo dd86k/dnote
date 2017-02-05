@@ -151,7 +151,7 @@ void create(string[] args)
 
     switch (args[0])
     {
-        case "--help":
+        case "--help", "/?":
             showhelp("create");
             return;
         default: {
@@ -164,7 +164,7 @@ void create(string[] args)
             {
                 switch (args[i])
                 {
-                    case "-n":
+                    case "-n", "/n":
                         if (++i < l) {
                             debug writeln("-n Name: ", args[i]);
                             name = args[i];
@@ -240,7 +240,7 @@ void show(string[] args)
     size_t l = args.length;
     switch (args[0])
     {
-        case "--help":
+        case "--help", "/?":
             showhelp("show");
             return;
         default:
@@ -299,7 +299,7 @@ void modify(string[] args)
 
     switch (args[0])
     {
-        case "--help":
+        case "--help", "/?":
             showhelp("modify");
             return;
         default:
@@ -310,7 +310,7 @@ void modify(string[] args)
             {
                 switch (args[i])
                 {
-                    case "-a":
+                    case "-a", "/a":
                         append = true;
                         ++si;
                         break;
@@ -401,7 +401,7 @@ void delete_(string[] args)
 
     switch (args[0])
     {
-        case "--help":
+        case "--help", "/?":
             showhelp("delete");
             return;
         default:
