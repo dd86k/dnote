@@ -178,7 +178,7 @@ void create(string[] args)
                 {
                     case "-n":
                         if (++i < l) {
-                            debug writeln("Name: ", args[i]);
+                            debug writeln("-n Name: ", args[i]);
                             name = args[i];
                             cname = true;
                             si += 2;
@@ -191,7 +191,7 @@ void create(string[] args)
                 }
             }
 
-            dnote_folder = get_userfolder() ~ dirSeparator ~ FOLDER_NAME;
+            dnote_folder = get_dnote_folder;
             
             if (exists(dnote_folder))
             {
@@ -211,12 +211,24 @@ void create(string[] args)
                 import std.range.primitives, std.format;
                 size_t n = dirEntries(dnote_folder, SpanMode.shallow).walkLength!() + 1;
                 name = format("%d", n);
-                debug writeln("Name: ", n);
+                cname = true;
             }
-            
-            alias write_file = std.file.write;
 
-            write_file(dnote_folder ~ dirSeparator ~ name, args[si..$]);
+            string fullname = dnote_folder ~ dirSeparator ~ name;
+
+            debug writeln("Name: ", name);
+
+            if (exists(fullname))
+            {
+                writefln(`Note "%s" already exists.`, name);
+                return;
+            }
+
+            string data;
+            foreach(s; args[si..$])
+                data ~= s;
+
+            std.file.write(fullname, data);
         }
             break;
     }
@@ -324,17 +336,15 @@ string get_userfolder()
 {
     version (Windows)
     {
-        enum folder = 0x28; // CSIDL_PROFILE
+        enum folder = 0x28; // CSIDL_PROFILE from
+        // http://www.installmate.com/support/im9/using/symbols/functions/csidls.htm
         import core.stdc.wchar_ : wcslen;
         import std.utf : toUTF8;
 
         wchar[MAX_PATH] buffer;
-        if (SHGetFolderPathW(null, folder, null, 0, buffer.ptr) >= 0) // Works in Windows 10
-        {
-            string t = buffer[0 .. wcslen(buffer.ptr)].toUTF8();
-            debug writeln("get_userfolder: ", t);
-            return t;
-        }
+        wchar* ptr = buffer.ptr;
+        if (!SHGetFolderPathW(null, folder, null, 0, ptr)) // Works from XP to 10
+            return buffer[0 .. wcslen(ptr)].toUTF8();
 
         debug writeln("get_userfolder: null");
         return null;
@@ -343,4 +353,9 @@ string get_userfolder()
     {
         throw new Exception("Not implemented : get_userfolder");
     }
+}
+
+string get_dnote_folder()
+{
+    return get_userfolder() ~ dirSeparator ~ FOLDER_NAME;
 }
