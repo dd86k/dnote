@@ -10,7 +10,7 @@ syntax:
 dnote
 - create|c [-n <Name>] <Message>
 - show|s <Name>
-- modify|m <Name> <Message>
+- modify|m [-a] <Name> <Message>
 - list|l
 - delete|d [-y] {-a|<Name>}
 */
@@ -21,15 +21,15 @@ const enum { // App constants
     FOLDER_NAME = ".dnote",
 }
 
-const enum { // CLI Error list, to use/defined later
+const enum { // CLI Error list, to use/define later
     E_S = 0,
     // Main CLI
 
     // Other operations
 
     // Create
-    E_CG,        // Generic create error
-    E_CNN,       // Create No Name defined
+    E_CREG,        // Generic create error
+    E_CRENN,       // Create No Note defined
     // Show
 
     // Modify
@@ -41,7 +41,6 @@ const enum { // CLI Error list, to use/defined later
 
 static string dnote_folder;
 
-// OPTLINK automatically links shell32 it appears.
 version (Windows) extern (Windows) {
     import core.sys.windows.windows;
     HRESULT SHGetFolderPathW(
@@ -220,8 +219,6 @@ void create(string[] args)
 
             string fullname = dnote_folder ~ dirSeparator ~ name;
 
-            debug writeln("Name: ", name);
-
             if (exists(fullname))
             {
                 writefln(`Note "%s" already exists.`, name);
@@ -233,6 +230,7 @@ void create(string[] args)
                 data ~= ' ' ~ s;
 
             std.file.write(fullname, data);
+            writefln(`Note created as "%s".`, name);
         }
             break;
     }
@@ -240,26 +238,141 @@ void create(string[] args)
 
 void show(string[] args)
 {
+    size_t l = args.length;
     switch (args[0])
     {
         case "--help":
             showhelp("show");
             return;
         default:
+            if (l < 1) // sanity check
+            {
+                writeln("Missing argument.");
+                return;
+            }
 
+            string up = get_userfolder;
+
+            if (up == null)
+            {
+                writeln("There was an error getting the userfolder.");
+                return;
+            }
+
+            dnote_folder = get_dnote_folder(up);
+            
+            if (exists(dnote_folder))
+            {
+                if (isFile(dnote_folder))
+                {
+                    writefln("Can't check folder, %s already exists as a file.", FOLDER_NAME);
+                    return;
+                }
+            }
+            else
+            {
+                writefln(`%s folder does not exist.`, FOLDER_NAME);
+                return;
+            }
+            
+            string fullname = dnote_folder ~ dirSeparator ~ args[0];
+
+            if (exists(fullname))
+            {
+                const size_t MAX = 2; // 40
+                File f = File(fullname);
+
+                char[40] buf;
+                f.rawRead(buf);
+
+                writeln(buf);
+            }
+            else
+            {
+                writefln(`Note "%s" does not exist.`, args[0]);
+                return;
+            }
             break;
     }
 } // show
 
 void modify(string[] args)
 {
+    size_t l = args.length;
+
     switch (args[0])
     {
         case "--help":
             showhelp("modify");
             return;
         default:
-        
+            size_t si;
+            bool append = false;
+
+            for (size_t i = 0; i < l; ++i)
+            {
+                switch (args[i])
+                {
+                    case "-a":
+                        append = true;
+                        ++si;
+                        break;
+                    default:
+                }
+            }
+
+            if (si + 2 > l)
+            {
+                writeln("Missing content.");
+                return;
+            }
+
+            string name = args[si];
+            string up = get_userfolder;
+
+            if (up == null)
+            {
+                writeln("There was an error getting the userfolder.");
+                return;
+            }
+
+            dnote_folder = get_dnote_folder(up);
+
+            if (exists(dnote_folder))
+            {
+                if (isFile(dnote_folder))
+                {
+                    writefln("Can't check folder, %s already exists as a file.", FOLDER_NAME);
+                    return;
+                }
+            }
+            else
+            {
+                writeln("Note folder doesn't exist, try creating a note first!");
+                return;
+            }
+
+            string fullname = dnote_folder ~ dirSeparator ~ name;
+
+            if (!exists(fullname))
+            {
+                writefln(`Note "%s" does not exist.`, name);
+                return;
+            }
+
+            string data = args[si + 1];
+            foreach(s; args[si + 2..$])
+                data ~= ' ' ~ s;
+
+            if (append)
+            {
+                File f = File(fullname);
+                f.write(' ');
+                f.write(data);
+            }
+            else
+                std.file.write(fullname, data);
+            writefln(`Note "%s" modified.`, name);
             break;
     }
 } // modify
@@ -301,7 +414,7 @@ void showhelp(string command)
             writeln("create [-n <Name>] <Note>");
             writeln("Creates a new note.");
             writeln("  -n   Name the new note.\n");
-            writeln(`By default, when unamed, names will start at "1" and still increment until a valid name is found.`);
+            writeln(`By default, when unamed, names will be determined by the number of notes existing, starting at "1".`);
             break;
         case "s", "show":
             writeln("show <Name>");
@@ -326,10 +439,10 @@ void showhelp(string command)
             writeln("Delete a note.");
             writeln("  -y   Automatically confirm yes.");
             writeln("  -a   All notes.\n");
-            writeln("By default, there will be a confirmation ");
+            writeln("By default, there will be a confirmation menu.");
             break;
         default:
-            writefln("%s is not a valid command.", command);
+            writefln(`"%s" is not a valid command.`, command);
             break;
     }
 }
