@@ -191,7 +191,15 @@ void create(string[] args)
                 }
             }
 
-            dnote_folder = get_dnote_folder;
+            string up = get_userfolder;
+
+            if (up == null)
+            {
+                writeln("There was an error getting the userfolder.");
+                return;
+            }
+
+            dnote_folder = get_dnote_folder(up);
             
             if (exists(dnote_folder))
             {
@@ -327,11 +335,6 @@ void showhelp(string command)
     }
 }
 
-bool dnote_folder_exists()
-{
-    return exists(dnote_folder) && isDir(dnote_folder);
-}
-
 string get_userfolder()
 {
     version (Windows)
@@ -355,7 +358,7 @@ string get_userfolder()
     }
 }
 
-string get_dnote_folder()
+string get_dnote_folder(string userprofile)
 {
-    return get_userfolder() ~ dirSeparator ~ FOLDER_NAME;
+    return userprofile ~ dirSeparator ~ FOLDER_NAME;
 }
