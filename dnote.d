@@ -24,7 +24,6 @@ const enum { // CLI Error list
     E_NDE,      // Note doesn't exist
     E_NAE,      // Note already exist
     E_UCA,      // User canceled action
-
 }
 
 static string dnote_folder;
@@ -43,7 +42,7 @@ version (Windows) extern (Windows) {
 int main(string[] args)
 {
     size_t l = args.length;
-    
+
     if (l <= 1)
     {
         print_help(args[0]);
