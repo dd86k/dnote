@@ -1,7 +1,6 @@
 module dnote;
 
 import std.stdio;
-//import std.process : system;
 import std.path : dirSeparator, baseName;
 import std.file;
 
@@ -11,23 +10,21 @@ const enum { // App constants
     FOLDER_NAME = ".dnote",
 }
 
-//TODO: Implement return codes.
-const enum { // CLI Error list, to use/define later
-    E_S = 0,
-    // Main CLI
+const enum { // CLI Error list
+    E_S = 0,        // Success
+    // CLI
+    E_CLICOM,       // Invalid command
+    E_CLICRE,       // Invalid CLI (create)
+    E_CLISHO,       // Invalid CLI (create)
+    // Operation
+    E_CGUP,     // Can't get User Profile
+    E_MNC,      // Missing note content
+    E_AFM,      // Application folder is missing
+    E_AFF,      // Application folder is a file
+    E_NDE,      // Note doesn't exist
+    E_NAE,      // Note already exist
+    E_UCA,      // User canceled action
 
-    // Other operations
-
-    // Create
-    E_CREG,        // Generic create error
-    E_CRENN,       // Create No Note defined
-    // Show
-
-    // Modify
-
-    // List
-
-    // Delete
 }
 
 static string dnote_folder;
@@ -57,33 +54,33 @@ int main(string[] args)
     {
         case "-h", "--help", "/?":
             print_help(args[0]);
-            return 0;
+            return E_S;
         case "-v", "--version":
             print_version(args[0]);
-            return 0;
+            return E_S;
 
         case "h", "help":
             if (l > 2)
                 showhelp(args[2]);
             else
                 print_help(args[0]);
-            break;
+            return E_S;
 
         case "c", "create":
             if (l > 2)
-                create(args[2..$]);
+                return create(args[2..$]);
             else
                 showhelp("create");
             break;
         case "s", "show":
             if (l > 2)
-                show(args[2..$]);
+                return show(args[2..$]);
             else
                 showhelp("show");
             break;
         case "m", "modify":
             if (l > 2)
-                modify(args[2..$]);
+                return modify(args[2..$]);
             else
                 showhelp("modify");
             break;
@@ -91,17 +88,17 @@ int main(string[] args)
             if (l > 2)
                 showhelp("list");
             else
-                list();
+                return list();
             break;
         case "d", "delete":
             if (l > 2)
-                delete_(args[2..$]);
+                return delete_(args[2..$]);
             else
                 showhelp("delete");
             break;
         default:
             writefln(`"%s" is an invalid command.`, args[1]);
-            break;
+            return E_CLICOM;
     }
     
     return 0;
@@ -136,15 +133,14 @@ void print_version(string app = APP_NAME)
  * Application
  */
 
-void create(string[] args)
+int create(string[] args)
 {
     size_t l = args.length;
-
     switch (args[0])
     {
         case "--help", "/?":
             showhelp("create");
-            return;
+            return E_S;
         default: {
             size_t si = 0; // Starting [slice] index
             bool cname; // List of 
@@ -163,7 +159,7 @@ void create(string[] args)
                             si += 2;
                         } else {
                             writeln("-n : Missing name.");
-                            return;
+                            return E_CLICRE;
                         }
                         break;
                     default:
@@ -173,7 +169,7 @@ void create(string[] args)
             if (si >= l)
             {
                 writeln("Missing note content.");
-                return;
+                return E_MNC;
             }
 
             string up = get_userfolder;
@@ -181,7 +177,7 @@ void create(string[] args)
             if (up == null)
             {
                 writeln("There was an error getting the userfolder.");
-                return;
+                return E_CGUP;
             }
 
             dnote_folder = get_dnote_folder(up);
@@ -190,8 +186,9 @@ void create(string[] args)
             {
                 if (isFile(dnote_folder))
                 {
-                    writefln("Can't create folder, %s already exists as a file.", FOLDER_NAME);
-                    return;
+                    writefln("Can't create application folder, %s already exists as a file.",
+                        FOLDER_NAME);
+                    return E_AFF;
                 }
             }
             else
@@ -212,7 +209,7 @@ void create(string[] args)
             if (exists(fullname))
             {
                 writefln(`Note "%s" already exists.`, name);
-                return;
+                return E_NAE;
             }
 
             string data = args[si];
@@ -224,21 +221,23 @@ void create(string[] args)
         }
             break;
     }
+
+    return E_S;
 } // create
 
-void show(string[] args)
+int show(string[] args)
 {
     size_t l = args.length;
     switch (args[0])
     {
         case "--help", "/?":
             showhelp("show");
-            return;
+            return E_S;
         default:
             if (l < 1) // sanity check
             {
                 writeln("Missing argument.");
-                return;
+                return E_CLISHO;
             }
 
             string up = get_userfolder;
@@ -246,7 +245,7 @@ void show(string[] args)
             if (up == null)
             {
                 writeln("There was an error getting the userfolder.");
-                return;
+                return E_CGUP;
             }
 
             dnote_folder = get_dnote_folder(up);
@@ -256,20 +255,19 @@ void show(string[] args)
                 if (isFile(dnote_folder))
                 {
                     writefln("Can't check folder, %s already exists as a file.", FOLDER_NAME);
-                    return;
+                    return E_AFF;
                 }
             }
             else
             {
                 writefln(`%s folder does not exist.`, FOLDER_NAME);
-                return;
+                return E_AFM;
             }
             
             string fullname = dnote_folder ~ dirSeparator ~ args[0];
 
             if (exists(fullname))
             {
-                const size_t MAX = 2; // 40
                 File f = File(fullname);
                 string buf;
                 while ((buf = f.readln) !is null)
@@ -278,21 +276,22 @@ void show(string[] args)
             else
             {
                 writefln(`Note "%s" does not exist.`, args[0]);
-                return;
+                return E_NDE;
             }
             break;
     }
+
+    return E_S;
 } // show
 
-void modify(string[] args)
+int modify(string[] args)
 {
     size_t l = args.length;
-
     switch (args[0])
     {
         case "--help", "/?":
             showhelp("modify");
-            return;
+            return E_S;
         default:
             size_t si;
             bool append = false;
@@ -312,7 +311,7 @@ void modify(string[] args)
             if (si + 2 > l)
             {
                 writeln("Missing content.");
-                return;
+                return E_MNC;
             }
 
             string name = args[si];
@@ -321,7 +320,7 @@ void modify(string[] args)
             if (up == null)
             {
                 writeln("There was an error getting the userfolder.");
-                return;
+                return E_CGUP;
             }
 
             dnote_folder = get_dnote_folder(up);
@@ -331,13 +330,13 @@ void modify(string[] args)
                 if (isFile(dnote_folder))
                 {
                     writefln("Can't check folder, %s already exists as a file.", FOLDER_NAME);
-                    return;
+                    return E_AFF;
                 }
             }
             else
             {
                 writeln("Note folder doesn't exist, try creating a note first!");
-                return;
+                return E_AFM;
             }
 
             string fullname = dnote_folder ~ dirSeparator ~ name;
@@ -345,7 +344,7 @@ void modify(string[] args)
             if (!exists(fullname))
             {
                 writefln(`Note "%s" does not exist.`, name);
-                return;
+                return E_NDE;
             }
 
             string data = args[si + 1];
@@ -362,16 +361,18 @@ void modify(string[] args)
                 std.file.write(fullname, data);
             break;
     }
+
+    return E_S;
 } // modify
 
-void list()
+int list()
 {
     string up = get_userfolder;
 
     if (up == null)
     {
         writeln("There was an error getting the userfolder.");
-        return;
+        return E_CGUP;
     }
 
     dnote_folder = get_dnote_folder(up);
@@ -379,22 +380,23 @@ void list()
     if (!exists(dnote_folder))
     {
         writefln(`%s folder does not exist.`, FOLDER_NAME);
-        return;
+        return E_AFM;
     }
 
     foreach(e; dirEntries(dnote_folder, SpanMode.shallow))
         writeln(baseName(e.name));
+
+    return E_S;
 } // list
 
-void delete_(string[] args)
+int delete_(string[] args)
 {
     size_t l = args.length;
-
     switch (args[0])
     {
         case "--help", "/?":
             showhelp("delete");
-            return;
+            return E_S;
         default:
             size_t si;
             bool yes, all;
@@ -419,7 +421,7 @@ void delete_(string[] args)
             if (up == null)
             {
                 writeln("There was an error getting the userfolder.");
-                return;
+                return E_CGUP;
             }
 
             dnote_folder = get_dnote_folder(up);
@@ -429,13 +431,13 @@ void delete_(string[] args)
                 if (isFile(dnote_folder))
                 {
                     writefln("Can't check folder, %s already exists as a file.", FOLDER_NAME);
-                    return;
+                    return E_AFF;
                 }
             }
             else
             {
                 writeln(`Folder "%s" does not exist.`, FOLDER_NAME);
-                return;
+                return E_AFM;
             }
 
             if (all)
@@ -449,10 +451,10 @@ void delete_(string[] args)
                         if (ln[0] != 'y')
                         {
                             writeln("Canceled.");
-                            return;
+                            return E_UCA;
                         }
                     }
-                    else return;
+                    else return E_UCA;
                 }
 
                 foreach (e; dirEntries(dnote_folder, SpanMode.shallow))
@@ -466,7 +468,7 @@ void delete_(string[] args)
                 if (!exists(fullname))
                 {
                     writefln(`Note "%s" does not exist.`, name);
-                    return;
+                    return E_NDE;
                 }
 
                 if (!yes)
@@ -478,16 +480,18 @@ void delete_(string[] args)
                         if (ln[0] != 'y')
                         {
                             writeln("Canceled.");
-                            return;
+                            return E_UCA;
                         }
                     }
-                    else return;
+                    else return E_UCA;
                 }
 
                 remove(fullname);
             }
             break;
     }
+
+    return E_S;
 } // delete
 
 void showhelp(string command)
