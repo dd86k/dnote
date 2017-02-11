@@ -83,13 +83,13 @@ int main(string[] args)
             else
                 showhelp("modify");
             break;
-        case "l", "list":
+        case "l", "ls", "list":
             if (l > 2)
                 showhelp("list");
             else
                 return list();
             break;
-        case "d", "delete":
+        case "d", "rm", "delete":
             if (l > 2)
                 return delete_(args[2..$]);
             else
@@ -382,8 +382,21 @@ int list()
         return E_AFM;
     }
 
-    foreach(e; dirEntries(dnote_folder, SpanMode.shallow))
-        writeln(baseName(e.name));
+    writefln("%-20s %s", "Note", "Content");
+    for (int a = 0; a < 2; ++a) {
+        for (int i = 0; i < 20; ++i)
+            write('-');
+        write(' ');
+    }
+    writeln();
+
+    foreach(e; dirEntries(dnote_folder, SpanMode.shallow)) {
+        writef("%-21s", baseName(e.name));
+        char[20] buf;
+        File f = File(e.name);
+        f.rawRead(buf);
+        writeln(buf);
+    }
 
     return E_S;
 } // list
