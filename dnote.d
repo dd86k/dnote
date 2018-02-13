@@ -566,29 +566,17 @@ string get_userfolder()
         debug writeln("get_userfolder: null");
         return null;
     }
-    else version (linux)
+    else version (Posix)
     {
-        static assert(0, "get_userfolder : Not implemented in Linux.");
-        import core.sys.linux.unistd, core.stdc.stdlib;
-        /* unistd:
-        - getuid()
-           stdlib:
-        - getenv()
-        
-        #include <unistd.h>
-        #include <sys/types.h>
-        #include <pwd.h>
+        import core.sys.posix.pwd, core.sys.posix.unistd;
+        import core.stdc.string : strlen;
+        import std.conv : to;
+        auto passwd = getpwuid(geteuid());
+        if (passwd)
+            return to!string(passwd.pw_dir);
 
-        const char *homedir;
-
-        if ((homedir = getenv("HOME")) == NULL) {
-            homedir = getpwuid(getuid())->pw_dir;
-        }
-        */
-    }
-    else version (OSX)
-    {
-        static assert(0, "get_userfolder : Not implemented in OSX.");
+        debug writeln("get_userfolder: null");
+        return null;
     }
     else
         static assert(0, "Target operating system is not supported.");
